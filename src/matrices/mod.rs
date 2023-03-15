@@ -1,36 +1,56 @@
 use std::{
     marker::PhantomData,
     ops::{Index, IndexMut},
-    ptr::NonNull,
+    ptr::NonNull, fmt::Display,
 };
 
-use crate::dimension::Dimension;
+pub mod columns;
 pub mod indices;
 pub mod rows;
-pub mod columns;
 
 use indices::Index as MatIndex;
 
+use crate::dimension::Dimension;
+
 use self::{
+    columns::MatrixColumn,
     indices::{ColumnIndex, RowIndex},
     rows::MatrixRow,
 };
 
 pub struct Matrix<T> {
     pub content: MatrixContent<T>,
-    pub width: isize,
-    pub height: isize,
 }
 
 impl<T> Matrix<T> {
+    pub fn from_content(content: MatrixContent<T>) -> Self {
+        Self { content }
+    }
     pub fn width(&self) -> isize {
-        self.width
+        self.content.dimension.width()
     }
 
     pub fn height(&self) -> isize {
-        self.height
+        self.content.dimension.height()
     }
 }
+
+
+impl<T: Display> std::fmt::Display for Matrix<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut output = String::new();
+        for row in 0..self.height() {
+            for col in 0..self.width() {
+                let value = &self.content[(row, col)];
+                output.push_str(&format!("{} ", value));
+            }
+            output.push('\n');
+        }
+        output.pop();
+        write!(f, "[\n{}\n]", output)
+    }
+}
+
 
 pub struct MatrixContent<T> {
     pub(crate) dimension: Dimension,
@@ -38,20 +58,27 @@ pub struct MatrixContent<T> {
 }
 
 impl<T> MatrixContent<T> {
+    pub fn new(dimension: Dimension, buffer: Vec<T>) -> Self {
+        Self {
+            dimension,
+            buffer: buffer.into_boxed_slice(),
+        }
+    }
+
     fn reflect_row(&self, row: isize) -> isize {
-        (if row < 0 {
+        if row < 0 {
             self.dimension.height() + row
         } else {
             row
-        })
+        }
     }
 
     fn reflect_col(&self, col: isize) -> isize {
-        (if col < 0 {
+        if col < 0 {
             self.dimension.width() + col
         } else {
             col
-        })
+        }
     }
 
     fn reflect(&self, (row, col): (isize, isize)) -> (isize, isize) {
@@ -119,6 +146,22 @@ impl<'a, T: 'a> Get<'a, RowIndex> for Matrix<T> {
     }
 }
 
+impl<'a, T: 'a> Get<'a, ColumnIndex> for Matrix<T> {
+    type Output = MatrixColumn<'a, T>;
+
+    fn get(&'a self, ColumnIndex(col): ColumnIndex) -> Option<Self::Output> {
+        let col = self.content.reflect_row(col);
+        if col < 0 || col >= self.width() {
+            None
+        } else {
+            Some(MatrixColumn {
+                mat: &self.content,
+                col,
+            })
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct MatrixIter<'a, T> {
     mat: &'a MatrixContent<T>,
@@ -150,7 +193,7 @@ pub struct MatrixIterMut<'a, T: 'a> {
 }
 
 impl<'a, T> MatrixIterMut<'a, T> {
-    pub(crate) unsafe fn new(start: usize, end: usize, slice: &'a mut [T], step: usize) -> Self {
+    pub unsafe fn new(start: usize, end: usize, slice: &'a mut [T], step: usize) -> Self {
         assert!(start <= end);
         assert!(step > 0);
         let ptr = slice.as_mut_ptr().add(start);
@@ -177,6 +220,22 @@ impl<'a, T> Iterator for MatrixIterMut<'a, T> {
             } else {
                 None
             }
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! matrix {
+    [($rows:expr, $cols:expr), $($elem:expr),*] => {
+        {
+            use std::convert::TryInto;
+            use num_rust::dimension::Dimension;
+            use num_rust::matrices::{Matrix, MatrixContent};
+
+            let dim = Dimension::new($rows.try_into().unwrap(), $cols.try_into().unwrap());
+            let content_vec = vec![$($elem),*];
+            let content = MatrixContent::new(dim, content_vec);
+            Matrix::from_content(content)
         }
     }
 }
