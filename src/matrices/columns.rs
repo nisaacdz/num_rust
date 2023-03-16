@@ -7,6 +7,51 @@ pub struct MatrixColumn<'a, T> {
     pub(crate) col: isize,
 }
 
+impl<'a, T> MatrixColumn<'a, T> {
+    pub fn iter(&'a self) -> MatrixIter<'a, T> {
+        let pos = self.col;
+        let end = self.col + (self.mat.dimension.height() - 1) * self.mat.dimension.width();
+        MatrixIter {
+            step: self.mat.dimension.width() as usize,
+            end: end as usize,
+            pos: pos as usize,
+            mat: self.mat,
+        }
+    }
+}
+
+impl<'a, T: std::fmt::Display> std::fmt::Display for MatrixColumn<'a, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut output = String::from("[");
+        for item in self.iter() {
+            output.push_str(&item.to_string());
+            output.push_str(", ");
+        }
+        output.pop();
+        output.pop();
+        output.push(']');
+
+        write!(f, "{}", output)
+    }
+}
+
+impl<'a, T: std::fmt::Debug> std::fmt::Debug for MatrixColumn<'a, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut output = String::from("[");
+        for item in self.iter() {
+            output.push_str(&format!("{:?}", item));
+            output.push_str(", ");
+        }
+        output.pop();
+        output.pop();
+        output.push(']');
+
+        write!(f, "{}", output)
+    }
+}
+
+
+
 impl<'a, T> Index<RowIndex> for MatrixColumn<'a, T> {
     type Output = T;
 
@@ -36,6 +81,28 @@ impl<'a, T> IntoIterator for MatrixColumn<'a, T> {
             end: end as usize,
             pos: pos as usize,
             mat: self.mat,
+        }
+    }
+}
+
+pub struct ColumnsIter<'a, T> {
+    pub(crate) mat: &'a MatrixContent<T>,
+    pub(crate) pos: isize,
+}
+
+impl<'a, T> Iterator for ColumnsIter<'a, T> {
+    type Item = MatrixColumn<'a, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.pos < self.mat.dimension.width() {
+            let pos = self.pos;
+            self.pos += 1;
+            Some(MatrixColumn {
+                mat: self.mat,
+                col: pos,
+            })
+        } else {
+            None
         }
     }
 }
