@@ -1,11 +1,12 @@
-use num_rust::matrices::Matrix;
+use num_rust::mat;
 fn main() {
-    let mut m2: Matrix<i32> = vec![vec![0, 2, 4]; 3].try_into().unwrap();
+    let mat = mat![(4, 4), 0, 2, 3, 1, 6, 7, 8, 9, 5, 7, 2, 5, 6, 7, 7, 6];
 
-    for r in 0..3 {
-        for c in 0..3 {
-            m2[(r, c)] /= 2;
-        }
+    for en in mat.entries() {
+        print!("{}", en);
     }
-    println!("{}", m2);
+
+    println!();
+
+    println!("{}", mat);
 }

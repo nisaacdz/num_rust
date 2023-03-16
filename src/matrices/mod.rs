@@ -1,5 +1,6 @@
 pub mod columns;
 pub mod indices;
+mod ops;
 pub mod rows;
 
 use std::ops::{Index, IndexMut};
@@ -7,6 +8,7 @@ use std::ops::{Index, IndexMut};
 use indices::MatrixIndex;
 
 use crate::dimension::Dimension;
+pub use ops::*;
 
 use self::{
     columns::{ColumnsIter, MatrixColumn},
@@ -28,20 +30,6 @@ impl<T> Matrix<T> {
 
     pub fn height(&self) -> isize {
         self.content.dimension.height()
-    }
-
-    pub fn rows(&self) -> RowsIter<T> {
-        RowsIter {
-            mat: &self.content,
-            pos: 0,
-        }
-    }
-
-    pub fn columns(&self) -> ColumnsIter<T> {
-        ColumnsIter {
-            mat: &self.content,
-            pos: 0,
-        }
     }
 }
 
@@ -122,6 +110,18 @@ impl<T> MatrixContent<T> {
 
     fn reflect(&self, (row, col): (isize, isize)) -> (isize, isize) {
         (self.reflect_row(row), self.reflect_col(col))
+    }
+
+    pub fn entries(&self) -> MatrixEntries<T> {
+        MatrixEntries { mat: self, pos: 0 }
+    }
+
+    pub fn rows(&self) -> RowsIter<T> {
+        RowsIter { mat: self, pos: 0 }
+    }
+
+    pub fn columns(&self) -> ColumnsIter<T> {
+        ColumnsIter { mat: self, pos: 0 }
     }
 }
 
@@ -294,6 +294,25 @@ impl<'a, T> Iterator for MatrixIter<'a, T> {
             let index = self.pos;
             self.pos += self.step;
             Some(self.mat.buffer.index(index))
+        } else {
+            None
+        }
+    }
+}
+
+pub struct MatrixEntries<'a, T> {
+    mat: &'a MatrixContent<T>,
+    pos: usize,
+}
+
+impl<'a, T> Iterator for MatrixEntries<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.pos < self.mat.buffer.len() {
+            let pos = self.pos;
+            self.pos += 1;
+            Some(self.mat.buffer.index(pos))
         } else {
             None
         }
