@@ -71,6 +71,26 @@ impl<T> std::ops::DerefMut for Matrix<T> {
     }
 }
 
+impl<T> TryFrom<Vec<Vec<T>>> for Matrix<T> {
+    type Error = MisAlignment;
+
+    fn try_from(value: Vec<Vec<T>>) -> Result<Self, Self::Error> {
+        let mut vec = Vec::new();
+        let width = value[0].len();
+        let height = value.len();
+        for v in value {
+            if v.len() != width {
+                return Err(MisAlignment);
+            }
+            vec.extend(v.into_iter())
+        }
+
+        Ok(Matrix {
+            content: MatrixContent::new(Dimension::new(width as isize, height as isize), vec),
+        })
+    }
+}
+
 pub struct MatrixContent<T> {
     pub(crate) dimension: Dimension,
     pub(crate) buffer: Box<[T]>,
@@ -234,6 +254,29 @@ impl<'a, T: 'a> GetMut<'a, MatrixIndex> for MatrixContent<T> {
         }
     }
 }
+#[derive(Debug, Clone, Copy)]
+pub struct MisAlignment;
+
+impl<T> TryFrom<Vec<Vec<T>>> for MatrixContent<T> {
+    type Error = MisAlignment;
+
+    fn try_from(value: Vec<Vec<T>>) -> Result<Self, Self::Error> {
+        let mut vec = Vec::new();
+        let width = value[0].len();
+        let height = value.len();
+        for v in value {
+            if v.len() != width {
+                return Err(MisAlignment);
+            }
+            vec.extend(v.into_iter())
+        }
+
+        Ok(Self::new(
+            Dimension::new(width as isize, height as isize),
+            vec,
+        ))
+    }
+}
 
 #[derive(Clone)]
 pub struct MatrixIter<'a, T> {
@@ -370,6 +413,26 @@ impl std::ops::Deref for GenericMatrix {
 impl std::ops::DerefMut for GenericMatrix {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.content
+    }
+}
+
+impl TryFrom<Vec<Vec<f64>>> for GenericMatrix {
+    type Error = MisAlignment;
+
+    fn try_from(value: Vec<Vec<f64>>) -> Result<Self, Self::Error> {
+        let mut vec = Vec::new();
+        let width = value[0].len();
+        let height = value.len();
+        for v in value {
+            if v.len() != width {
+                return Err(MisAlignment);
+            }
+            vec.extend(v.into_iter())
+        }
+
+        Ok(GenericMatrix {
+            content: MatrixContent::new(Dimension::new(width as isize, height as isize), vec),
+        })
     }
 }
 

@@ -1,9 +1,11 @@
-use num_rust::{mat, matrix, matrices::{Get, indices::{ColumnIndex, RowIndex}}};
-
+use num_rust::matrices::Matrix;
 fn main() {
-    let m1 = mat![(3, 3), 2, 3, 4, 5, 3, 6, 4, 1, 7];
-    let m2 = matrix![(3, 3), 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
+    let mut m2: Matrix<i32> = vec![vec![0, 2, 4]; 3].try_into().unwrap();
 
-    println!("{}\n", m1.get(RowIndex::from(-1)).unwrap());
-    print!("{}", m2.get(ColumnIndex::from(-1)).unwrap()[0]);
+    for r in 0..3 {
+        for c in 0..3 {
+            m2[(r, c)] /= 2;
+        }
+    }
+    println!("{}", m2);
 }
