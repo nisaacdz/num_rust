@@ -182,6 +182,20 @@ impl<T> Index<(isize, isize)> for MatrixContent<T> {
     }
 }
 
+impl<T> Index<isize> for MatrixContent<T> {
+    type Output = T;
+
+    fn index(&self, index: isize) -> &Self::Output {
+        let index = if index < 0 {
+            self.dimension.len() + index
+        } else {
+            index
+        };
+
+        self.buffer.index(index as usize)
+    }
+}
+
 impl<T> IndexMut<(isize, isize)> for MatrixContent<T> {
     fn index_mut(&mut self, index: (isize, isize)) -> &mut Self::Output {
         let (row, col) = self.reflect(index);
