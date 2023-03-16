@@ -1,6 +1,7 @@
 pub mod columns;
 pub mod indices;
 mod ops;
+mod macros;
 pub mod rows;
 
 use std::ops::{Index, IndexMut};
@@ -9,6 +10,7 @@ use indices::MatrixIndex;
 
 use crate::dimension::Dimension;
 pub use ops::*;
+pub use macros::*;
 
 use self::{
     columns::{ColumnsIter, MatrixColumn},
@@ -79,6 +81,7 @@ impl<T> TryFrom<Vec<Vec<T>>> for Matrix<T> {
     }
 }
 
+#[derive(Clone, PartialEq, Eq)]
 pub struct MatrixContent<T> {
     pub(crate) dimension: Dimension,
     pub(crate) buffer: Box<[T]>,
@@ -114,6 +117,10 @@ impl<T> MatrixContent<T> {
 
     pub fn entries(&self) -> MatrixEntries<T> {
         MatrixEntries { mat: self, pos: 0 }
+    }
+
+    pub fn entries_mut(&mut self) -> MatrixIterMut<T> {
+        unsafe { MatrixIterMut::new(0, self.buffer.len() - 1, &mut self.buffer, 1) }
     }
 
     pub fn rows(&self) -> RowsIter<T> {
@@ -342,6 +349,8 @@ pub struct MatrixIterMut<'a, T: 'a> {
 }
 
 impl<'a, T> MatrixIterMut<'a, T> {
+    /// Creates a mutable iterator over the elements in a mutable slice from start to end inclusive
+    /// and with the steps indicated
     pub unsafe fn new(start: usize, end: usize, slice: &'a mut [T], step: usize) -> Self {
         assert!(start <= end);
         assert!(step > 0);
@@ -373,25 +382,7 @@ impl<'a, T> Iterator for MatrixIterMut<'a, T> {
     }
 }
 
-#[macro_export]
-macro_rules! matrix {
-    [($rows:expr, $cols:expr), $($elem:expr),*] => {
-        {
-            use std::convert::TryInto;
-            use num_rust::dimension::Dimension;
-            use num_rust::matrices::{Matrix, MatrixContent};
-
-            let dim = Dimension::new($rows.try_into().unwrap(), $cols.try_into().unwrap());
-            let content_vec = vec![$($elem),*];
-            if $rows * $cols != content_vec.len() {
-                panic!("Dimension and size of the matrix must correspond");
-            }
-            let content = MatrixContent::new(dim, content_vec);
-            Matrix::from_content(content)
-        }
-    }
-}
-
+#[derive(Clone)]
 pub struct GenericMatrix {
     pub(crate) content: MatrixContent<f64>,
 }
@@ -469,21 +460,3 @@ impl TryFrom<Vec<Vec<f64>>> for GenericMatrix {
     }
 }
 
-#[macro_export]
-macro_rules! mat {
-    [($rows:expr, $cols:expr), $($elem:expr),*] => {
-        {
-            use std::convert::TryInto;
-            use num_rust::dimension::Dimension;
-            use num_rust::matrices::{GenericMatrix, MatrixContent};
-
-            let dim = Dimension::new($rows.try_into().unwrap(), $cols.try_into().unwrap());
-            let content_vec = vec![$($elem.try_into().unwrap()),*];
-            if $rows * $cols != content_vec.len() {
-                panic!("Dimension and size of the matrix must correspond");
-            }
-            let content = MatrixContent::new(dim, content_vec);
-            GenericMatrix::from_content(content)
-        }
-    }
-}
