@@ -207,6 +207,34 @@ impl<'a, T: 'a> Get<'a, ColumnIndex> for MatrixContent<T> {
     }
 }
 
+impl<'a, T: 'a> Get<'a, MatrixIndex> for MatrixContent<T> {
+    type Output = &'a T;
+    fn get(&'a self, MatrixIndex(row, col): MatrixIndex) -> Option<Self::Output> {
+        let (row, col) = self.reflect((row, col));
+        if row < 0 || row >= self.dimension.height() {
+            None
+        } else if col < 0 || col >= self.dimension.width() {
+            None
+        } else {
+            Some(self.index((row, col)))
+        }
+    }
+}
+
+impl<'a, T: 'a> GetMut<'a, MatrixIndex> for MatrixContent<T> {
+    type Output = &'a mut T;
+    fn get_mut(&'a mut self, MatrixIndex(row, col): MatrixIndex) -> Option<Self::Output> {
+        let (row, col) = self.reflect((row, col));
+        if row < 0 || row >= self.dimension.height() {
+            None
+        } else if col < 0 || col >= self.dimension.width() {
+            None
+        } else {
+            Some(self.index_mut((row, col)))
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct MatrixIter<'a, T> {
     mat: &'a MatrixContent<T>,
